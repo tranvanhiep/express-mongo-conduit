@@ -1,4 +1,4 @@
-import { config } from 'dotenv';
+import 'dotenv/config';
 import express, { Express, NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -8,8 +8,10 @@ import session, { SessionOptions } from 'express-session';
 import MongoStore from 'connect-mongo';
 import errorHandler from 'errorhandler';
 import { connect, set } from 'mongoose';
-import routes from '@routes';
+import routes from '@routes/index';
 import passport from 'passport';
+import { localStrategy } from './middlewares/passport';
+import '@models/index';
 
 interface CustomError extends Error {
   status: number;
@@ -22,7 +24,6 @@ interface ErrorResponse {
   };
 }
 
-config();
 const isProd: boolean = process.env.NODE_ENV === 'production';
 const sessionOpt: SessionOptions = {
   secret: process.env.SESSION_SECRET as string,
@@ -50,15 +51,13 @@ if (!isProd) {
   app.use(errorHandler());
 }
 
-await connect(process.env.MONGODB_URI as string);
+connect(process.env.MONGODB_URI as string);
 
 if (!isProd) {
   set('debug', true);
 }
 
-await import('@models/User');
-await import('@middlewares/passport');
-
+passport.use(localStrategy);
 app.use(passport.initialize());
 app.use(routes);
 

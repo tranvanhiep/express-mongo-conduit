@@ -2,6 +2,11 @@ import { Request } from 'express';
 import { expressjwt, TokenGetter } from 'express-jwt';
 import { Secret } from 'jsonwebtoken';
 
+export interface AuthPayload {
+  id: string;
+  username: string;
+}
+
 const getToken: TokenGetter = (req: Request): string | undefined => {
   const authorization: string[] = req.headers?.authorization?.split(' ') ?? [];
 
@@ -16,14 +21,14 @@ export const auth = {
   required: expressjwt({
     secret: process.env.JWT_SECRET as Secret,
     algorithms: ['HS256'],
-    requestProperty: 'payload',
+    requestProperty: 'auth',
     getToken,
   }),
   optional: expressjwt({
     secret: process.env.JWT_SECRET as Secret,
     algorithms: ['HS256'],
     credentialsRequired: false,
-    requestProperty: 'payload',
+    requestProperty: 'auth',
     getToken,
   }),
 };

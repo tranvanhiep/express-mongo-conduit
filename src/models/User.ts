@@ -1,4 +1,4 @@
-import { model, Model, Schema, Types } from 'mongoose';
+import { Document, model, Model, Schema, Types } from 'mongoose';
 import mongooseUniqueValidator from 'mongoose-unique-validator';
 import crypto from 'crypto';
 import jwt, { Secret } from 'jsonwebtoken';
@@ -8,26 +8,43 @@ export interface IUser {
   email: string;
   bio?: string;
   image?: string;
-  favorites?: any[];
+  favorites?: Types.DocumentArray<any>; // TODO: Article
   following?: Types.DocumentArray<IUser>;
   hash: string;
   salt: string;
+}
+
+export interface UserInfo {
+  username: string;
+  email: string;
+  bio: string;
+  image: string;
+  token?: string;
+}
+
+export interface ProfileInfo {
+  username: string;
+  bio: string;
+  image: string;
+  following: boolean;
 }
 
 export interface IUserMethods {
   validPassword(password: string): boolean;
   setPassword(password: string): void;
   generateJwt(): string;
-  generateAuthToken(): AuthUser;
+  getUserInfo(needToken?: boolean): UserInfo;
+  getProfileInfo(user?: UserDocument): ProfileInfo;
 }
 
 export type UserModel = Model<IUser, {}, IUserMethods>;
 
-export interface AuthUser {
-  username: string;
-  email: string;
-  token: string;
-}
+export type UserDocument =
+  | (Document<any, {}, IUser> & {
+      _id: Types.ObjectId;
+    } & IUser &
+      IUserMethods)
+  | null;
 
 const UserSchema = new Schema<IUser, UserModel, IUserMethods>(
   {
@@ -49,8 +66,8 @@ const UserSchema = new Schema<IUser, UserModel, IUserMethods>(
     },
     bio: String,
     image: String,
-    favorites: [{ type: Types.ObjectId, ref: 'Article' }],
-    following: [{ type: Types.ObjectId, ref: 'User' }],
+    favorites: [{ type: Schema.Types.ObjectId, ref: 'Article' }],
+    following: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     hash: String,
     salt: String,
   },
@@ -64,7 +81,7 @@ const keylen: number = 512;
 const digest: string = 'sha512';
 
 UserSchema.methods.validPassword = function (password: string): boolean {
-  const hash = crypto
+  const hash: string = crypto
     .pbkdf2Sync(password, this.salt, iterations, keylen, digest)
     .toString('hex');
 
@@ -93,12 +110,39 @@ UserSchema.methods.generateJwt = function (): string {
   );
 };
 
-UserSchema.methods.generateAuthToken = function (): AuthUser {
-  return {
+UserSchema.methods.getUserInfo = function (
+  needToken: boolean = false
+): UserInfo {
+  const userInfo: UserInfo = {
     username: this.username,
     email: this.email,
-    token: this.generateJwt(),
+    bio: this.bio,
+    image: this.image,
+  };
+
+  if (needToken) {
+    return { ...userInfo, token: this.generateJwt() };
+  }
+
+  return userInfo;
+};
+
+UserSchema.methods.getProfileInfo = function (
+  currentUser?: UserDocument
+): ProfileInfo {
+  return {
+    username: this.username,
+    bio: this.bio,
+    image: this.image,
+    following: !currentUser
+      ? false
+      : !!currentUser.following?.some(
+          (follower: Types.Subdocument<Types.ObjectId> & IUser): boolean =>
+            follower._id === this._id
+        ),
   };
 };
 
-model<IUser, UserModel>('User', UserSchema);
+const User: UserModel = model<IUser, UserModel>('User', UserSchema);
+
+export default User;
