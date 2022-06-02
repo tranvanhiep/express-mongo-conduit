@@ -17,7 +17,7 @@ const getToken: TokenGetter = (req: Request): string | undefined => {
   return undefined;
 };
 
-export const auth = {
+export const authorization = {
   required: expressjwt({
     secret: process.env.JWT_SECRET as Secret,
     algorithms: ['HS256'],

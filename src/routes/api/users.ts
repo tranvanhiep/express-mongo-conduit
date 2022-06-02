@@ -1,25 +1,25 @@
-import { auth, AuthPayload } from '@middlewares/auth';
+import { authorization, AuthPayload } from '@middlewares/auth';
 import { NextFunction, Request, Response, Router } from 'express';
 import { Request as JwtRequest } from 'express-jwt';
 import models from '@models/index';
 import passport from 'passport';
 
-const router: Router = Router();
+const users: Router = Router();
 
-router.post(
+users.post(
   '/users/login',
   (req: Request, res: Response, next: NextFunction) => {
     const userBody = req.body?.user;
     if (!userBody) {
-      res.sendStatus(400);
+      res.sendStatus(422);
     }
 
     if (!userBody?.email) {
-      res.status(400).json({ errors: { email: "can't be blank" } });
+      res.status(422).json({ errors: { email: "can't be blank" } });
     }
 
     if (!userBody?.password) {
-      res.status(400).json({ errors: { password: "can't be blank" } });
+      res.status(422).json({ errors: { password: "can't be blank" } });
     }
 
     passport.authenticate(
@@ -41,27 +41,27 @@ router.post(
   }
 );
 
-router.post(
+users.post(
   '/users',
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const userBody = req.body?.user;
 
     if (!userBody) {
-      res.sendStatus(400);
+      res.sendStatus(422);
     }
 
     const { username, email, password } = userBody;
 
     if (!username) {
-      res.status(400).json({ errors: { username: "can't be blank" } });
+      res.status(422).json({ errors: { username: "can't be blank" } });
     }
 
     if (!email) {
-      res.status(400).json({ errors: { email: "can't be blank" } });
+      res.status(422).json({ errors: { email: "can't be blank" } });
     }
 
     if (!password) {
-      res.status(400).json({ errors: { password: "can't be blank" } });
+      res.status(422).json({ errors: { password: "can't be blank" } });
     }
 
     const user = new models.User({ username, email });
@@ -76,9 +76,9 @@ router.post(
   }
 );
 
-router.get(
+users.get(
   '/user',
-  auth.required,
+  authorization.required,
   async (
     req: JwtRequest<AuthPayload>,
     res: Response,
@@ -100,9 +100,9 @@ router.get(
   }
 );
 
-router.put(
+users.put(
   '/user',
-  auth.required,
+  authorization.required,
   async (
     req: JwtRequest<AuthPayload>,
     res: Response,
@@ -111,7 +111,7 @@ router.put(
     const userBody = req.body?.user;
 
     if (!userBody) {
-      res.sendStatus(400);
+      res.sendStatus(422);
     }
 
     try {
@@ -153,4 +153,4 @@ router.put(
   }
 );
 
-export default router;
+export default users;

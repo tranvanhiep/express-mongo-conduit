@@ -8,8 +8,8 @@ export interface IUser {
   email: string;
   bio?: string;
   image?: string;
-  favorites?: Types.DocumentArray<any>; // TODO: Article
-  following?: Types.DocumentArray<IUser>;
+  favorites?: Types.Array<Types.ObjectId>;
+  following?: Types.Array<Types.ObjectId>;
   hash: string;
   salt: string;
 }
@@ -34,7 +34,8 @@ export interface IUserMethods {
   setPassword(password: string): void;
   generateJwt(): string;
   getUserInfo(needToken?: boolean): UserInfo;
-  getProfileInfo(user?: UserDocument): ProfileInfo;
+  getProfileInfo(currentUser?: UserDocument): ProfileInfo;
+  isFavorite(articleId: Types.ObjectId): boolean;
 }
 
 export type UserModel = Model<IUser, {}, IUserMethods>;
@@ -55,6 +56,7 @@ const UserSchema = new Schema<IUser, UserModel, IUserMethods>(
       required: [true, "can't be blank"],
       match: [/^[a-zA-Z0-9]+$/, 'is invalid'],
       index: true,
+      trim: true,
     },
     email: {
       type: String,
@@ -137,10 +139,16 @@ UserSchema.methods.getProfileInfo = function (
     following: !currentUser
       ? false
       : !!currentUser.following?.some(
-          (follower: Types.Subdocument<Types.ObjectId> & IUser): boolean =>
-            follower._id === this._id
+          (followerId: Types.ObjectId): boolean =>
+            followerId.toString() === this._id.toString()
         ),
   };
+};
+
+UserSchema.methods.isFavorite = function (articleId: Types.ObjectId) {
+  return this.favorites.some(
+    (id: Types.ObjectId) => id.toString() === articleId.toString()
+  );
 };
 
 const User: UserModel = model<IUser, UserModel>('User', UserSchema);

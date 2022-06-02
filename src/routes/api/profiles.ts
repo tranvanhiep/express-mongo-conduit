@@ -1,16 +1,16 @@
-import { auth, AuthPayload } from '@middlewares/auth';
+import { authorization, AuthPayload } from '@middlewares/auth';
 import { UserDocument } from '@models/User';
 import { NextFunction, Response, Router } from 'express';
 import models from '@models/index';
 import { Request as JwtRequest } from 'express-jwt';
 
-const router: Router = Router();
+const profiles: Router = Router();
 
 interface ProfileRequest extends JwtRequest<AuthPayload> {
   profile?: UserDocument;
 }
 
-router.param(
+profiles.param(
   'username',
   async (
     req: ProfileRequest,
@@ -35,9 +35,9 @@ router.param(
   }
 );
 
-router.get(
+profiles.get(
   '/:username',
-  auth.optional,
+  authorization.optional,
   async (
     req: ProfileRequest,
     res: Response,
@@ -55,28 +55,23 @@ router.get(
         res.json({ profile: profile?.getProfileInfo() });
       }
 
-      res.json({ profile: profile?.getProfileInfo(user) });
+      res.json({ profile: profile?.getProfileInfo(user?._id) });
     } catch (error) {
       next(error);
     }
   }
 );
 
-router.post(
+profiles.post(
   '/:username/follow',
-  auth.required,
+  authorization.required,
   async (
     req: ProfileRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
-    const { profile, auth } = req;
-
-    if (!auth?.id) {
-      res.sendStatus(401);
-    }
-
     try {
+      const { profile, auth } = req;
       const user: UserDocument = await models.User.findById(auth?.id).exec();
 
       if (!user) {
@@ -100,24 +95,17 @@ router.post(
   }
 );
 
-router.delete(
+profiles.delete(
   '/:username/follow',
-  auth.required,
+  authorization.required,
   async (
     req: ProfileRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
-    const { profile, auth } = req;
-
-    if (!auth?.id) {
-      res.sendStatus(401);
-
-      return;
-    }
-
     try {
-      const user = await models.User.findById(auth.id).exec();
+      const { profile, auth } = req;
+      const user = await models.User.findById(auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);
@@ -141,4 +129,4 @@ router.delete(
   }
 );
 
-export default router;
+export default profiles;
