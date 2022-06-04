@@ -1,12 +1,14 @@
 import express, { NextFunction, Request, Response, Router } from 'express';
+import { Error } from 'mongoose';
 import users from '@routes/api/users';
 import profiles from '@routes/api/profiles';
-import { Error } from 'mongoose';
+import articles from '@routes/api/articles';
 
 const router: Router = express.Router();
 
 router.use('/', users);
 router.use('/profiles', profiles);
+router.use('/articles', articles);
 
 router.use(
   (err: any, _req: Request, res: Response, next: NextFunction): void => {

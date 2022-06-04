@@ -1,5 +1,7 @@
 import { Document, model, Model, Schema, Types } from 'mongoose';
 import { ProfileInfo, UserDocument } from './User';
+import models from '@models/index';
+import slug from 'slug';
 
 export interface IArticle {
   slug: string;
@@ -25,7 +27,9 @@ export interface ArticleContent {
 }
 
 export interface ArticleMethods {
-  getArticle(user: UserDocument): Promise<ArticleContent>;
+  getArticle(user?: UserDocument): Promise<ArticleContent>;
+  generateSlug(): void;
+  updateFavoriteCount(): Promise<void>;
 }
 
 export type ArticleModel = Model<IArticle, {}, ArticleMethods>;
@@ -64,9 +68,20 @@ const ArticleSchema = new Schema<IArticle, ArticleModel, ArticleMethods>(
   { timestamps: true }
 );
 
+ArticleSchema.pre(/^validate$/, function (next): void {
+  this.generateSlug();
+  next();
+});
+
+ArticleSchema.methods.generateSlug = function (): void {
+  this.slug = slug(this.title);
+};
+
 ArticleSchema.methods.getArticle = async function (
-  user: UserDocument
+  user?: UserDocument
 ): Promise<ArticleContent> {
+  const author = await models.User.findById(this.author).exec();
+
   return {
     slug: this.slug,
     title: this.title,
@@ -77,8 +92,17 @@ ArticleSchema.methods.getArticle = async function (
     updatedAt: this.updatedAt,
     favoritesCount: this.favoritesCount,
     favorite: user ? user.isFavorite(this._id) : false,
-    author: (await this.populate('author')).author,
+    author: author?.getProfileInfo(user) as ProfileInfo,
   };
+};
+
+ArticleSchema.methods.updateFavoriteCount = async function (): Promise<void> {
+  const count: number = await models.User.countDocuments({
+    favorites: { $in: [this._id] },
+  }).exec();
+
+  this.favoritesCount = count;
+  await this.save();
 };
 
 const Article: ArticleModel = model<IArticle, ArticleModel>(

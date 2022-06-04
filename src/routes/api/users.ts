@@ -64,7 +64,7 @@ users.post(
       res.status(422).json({ errors: { password: "can't be blank" } });
     }
 
-    const user = new models.User({ username, email });
+    const user = await models.User.create({ username, email });
     user.setPassword(password);
 
     try {

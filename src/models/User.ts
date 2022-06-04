@@ -35,7 +35,9 @@ export interface IUserMethods {
   generateJwt(): string;
   getUserInfo(needToken?: boolean): UserInfo;
   getProfileInfo(currentUser?: UserDocument): ProfileInfo;
-  isFavorite(articleId: Types.ObjectId): boolean;
+  isFavorite(articleId: string): boolean;
+  favorite(articleId: Types.ObjectId): Promise<void>;
+  unfavorite(articleId: Types.ObjectId): Promise<void>;
 }
 
 export type UserModel = Model<IUser, {}, IUserMethods>;
@@ -145,10 +147,34 @@ UserSchema.methods.getProfileInfo = function (
   };
 };
 
-UserSchema.methods.isFavorite = function (articleId: Types.ObjectId) {
+UserSchema.methods.isFavorite = function (articleId: string): boolean {
   return this.favorites.some(
-    (id: Types.ObjectId) => id.toString() === articleId.toString()
+    (id: Types.ObjectId) => id.toString() === articleId
   );
+};
+
+UserSchema.methods.favorite = async function (
+  articleId: Types.ObjectId
+): Promise<void> {
+  if (this.favorites.includes(articleId)) {
+    return;
+  }
+
+  this.favorites.push(articleId);
+  await this.save();
+};
+
+UserSchema.methods.unfavorite = async function (
+  articleId: Types.ObjectId
+): Promise<void> {
+  const idx: number = this.favorites.indexOf(articleId);
+
+  if (idx < 0) {
+    return;
+  }
+
+  this.favorites.splice(idx, 1);
+  await this.save();
 };
 
 const User: UserModel = model<IUser, UserModel>('User', UserSchema);

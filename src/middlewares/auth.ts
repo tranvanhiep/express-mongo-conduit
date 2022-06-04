@@ -8,10 +8,10 @@ export interface AuthPayload {
 }
 
 const getToken: TokenGetter = (req: Request): string | undefined => {
-  const authorization: string[] = req.headers?.authorization?.split(' ') ?? [];
+  const auth: string[] = req.headers?.authorization?.split(' ') ?? [];
 
-  if (authorization.length && authorization[0] === 'Bearer') {
-    return authorization[1];
+  if (auth.length && auth[0] === 'Bearer') {
+    return auth[1];
   }
 
   return undefined;
