@@ -10,6 +10,7 @@ users.post(
   '/users/login',
   (req: Request, res: Response, next: NextFunction) => {
     const userBody = req.body?.user;
+
     if (!userBody) {
       res.sendStatus(422);
     }
@@ -108,14 +109,14 @@ users.put(
     res: Response,
     next: NextFunction
   ): Promise<void> => {
-    const userBody = req.body?.user;
+    const { auth, body } = req;
 
-    if (!userBody) {
+    if (!body?.user) {
       res.sendStatus(422);
     }
 
     try {
-      const user = await models.User.findById(req.auth?.id).exec();
+      const user = await models.User.findById(auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);
@@ -123,7 +124,7 @@ users.put(
         return;
       }
 
-      const { email, username, bio, image, password } = userBody;
+      const { email, username, bio, image, password } = body.user;
 
       if (email !== undefined) {
         user.email = email;

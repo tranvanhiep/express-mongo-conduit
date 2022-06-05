@@ -54,6 +54,7 @@ articles.post(
       }
 
       const article = await models.Article.create(body.article);
+
       article.author = user._id;
       await article.save();
       res.json({ article: await article.getArticle(user) });
@@ -104,7 +105,7 @@ articles.put(
         return;
       }
 
-      if (article?.author?.id !== auth?.id?.toString()) {
+      if (article?.author.toString() !== auth?.id?.toString()) {
         res.sendStatus(403);
 
         return;
@@ -156,7 +157,7 @@ articles.delete(
         return;
       }
 
-      if (article?.author?.id !== auth?.id?.toString()) {
+      if (article?.author.toString() !== auth?.id?.toString()) {
         res.sendStatus(403);
 
         return;

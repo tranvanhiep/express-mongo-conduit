@@ -6,7 +6,7 @@ import { Request as JwtRequest } from 'express-jwt';
 
 const profiles: Router = Router();
 
-interface ProfileRequest extends JwtRequest<AuthPayload> {
+interface ProfileRequest<T = {}> extends JwtRequest<T> {
   profile?: UserDocument;
 }
 
@@ -39,23 +39,22 @@ profiles.get(
   '/:username',
   authorization.optional,
   async (
-    req: ProfileRequest,
+    req: ProfileRequest<AuthPayload>,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
-    const { profile, auth } = req;
-    if (!auth?.id) {
-      res.json({ profile: profile?.getProfileInfo() });
-    }
-
     try {
-      const user: UserDocument = await models.User.findById(auth?.id).exec();
+      const { profile, auth } = req;
 
-      if (!user) {
-        res.json({ profile: profile?.getProfileInfo() });
+      if (!auth?.id) {
+        res.json({ profile: profile!.getProfileInfo() });
+
+        return;
       }
 
-      res.json({ profile: profile?.getProfileInfo(user?._id) });
+      const user: UserDocument = await models.User.findById(auth.id).exec();
+
+      res.json({ profile: profile!.getProfileInfo(user) });
     } catch (error) {
       next(error);
     }
@@ -66,7 +65,7 @@ profiles.post(
   '/:username/follow',
   authorization.required,
   async (
-    req: ProfileRequest,
+    req: ProfileRequest<AuthPayload>,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
@@ -80,15 +79,8 @@ profiles.post(
         return;
       }
 
-      if (
-        !user.following?.some((follower) => follower._id === profile?._id) &&
-        profile?._id !== user._id
-      ) {
-        user.following?.push(profile!);
-        await user.save();
-      }
-
-      res.json({ profile: profile?.getProfileInfo(user) });
+      user.follow(profile!._id);
+      res.json({ profile: profile!.getProfileInfo(user) });
     } catch (error) {
       next(error);
     }
@@ -99,7 +91,7 @@ profiles.delete(
   '/:username/follow',
   authorization.required,
   async (
-    req: ProfileRequest,
+    req: ProfileRequest<AuthPayload>,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
@@ -113,16 +105,8 @@ profiles.delete(
         return;
       }
 
-      const idx: number = (user.following || []).findIndex(
-        (follower) => follower._id === profile?._id
-      );
-
-      if (idx >= 0) {
-        user.following?.splice(idx, 1);
-        await user.save();
-      }
-
-      res.json({ profile: profile?.getProfileInfo(user) });
+      user.unfollow(profile!._id);
+      res.json({ profile: profile!.getProfileInfo(user) });
     } catch (error) {
       next(error);
     }

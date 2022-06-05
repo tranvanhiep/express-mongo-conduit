@@ -91,7 +91,7 @@ ArticleSchema.methods.getArticle = async function (
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
     favoritesCount: this.favoritesCount,
-    favorite: user ? user.isFavorite(this._id) : false,
+    favorite: user ? user.isFavorite(this.id) : false,
     author: author?.getProfileInfo(user) as ProfileInfo,
   };
 };

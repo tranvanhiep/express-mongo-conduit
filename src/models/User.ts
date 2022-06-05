@@ -35,6 +35,9 @@ export interface IUserMethods {
   generateJwt(): string;
   getUserInfo(needToken?: boolean): UserInfo;
   getProfileInfo(currentUser?: UserDocument): ProfileInfo;
+  isFollowing(userId: string): boolean;
+  follow(userId: Types.ObjectId): Promise<void>;
+  unfollow(userId: Types.ObjectId): Promise<void>;
   isFavorite(articleId: string): boolean;
   favorite(articleId: Types.ObjectId): Promise<void>;
   unfavorite(articleId: Types.ObjectId): Promise<void>;
@@ -138,25 +141,51 @@ UserSchema.methods.getProfileInfo = function (
     username: this.username,
     bio: this.bio,
     image: this.image,
-    following: !currentUser
-      ? false
-      : !!currentUser.following?.some(
-          (followerId: Types.ObjectId): boolean =>
-            followerId.toString() === this._id.toString()
-        ),
+    following: !currentUser ? false : currentUser.isFollowing(this.id),
   };
+};
+
+UserSchema.methods.isFollowing = function (userId: string): boolean {
+  return this.following.some(
+    (following: Types.ObjectId) => following.toString() === userId
+  );
+};
+
+UserSchema.methods.follow = async function (
+  userId: Types.ObjectId
+): Promise<void> {
+  if (this.isFollowing(userId.toString())) {
+    return;
+  }
+
+  this.following.push(this._id);
+  await this.save();
+};
+
+UserSchema.methods.unfollow = async function (
+  userId: Types.ObjectId
+): Promise<void> {
+  if (!this.isFollowing(userId.toString())) {
+    return;
+  }
+
+  const idx: number = this.following.findIndex(
+    (follow: Types.ObjectId) => follow.toString() === userId.toString()
+  );
+  this.following.splice(idx, 1);
+  await this.save();
 };
 
 UserSchema.methods.isFavorite = function (articleId: string): boolean {
   return this.favorites.some(
-    (id: Types.ObjectId) => id.toString() === articleId
+    (favorite: Types.ObjectId) => favorite.toString() === articleId
   );
 };
 
 UserSchema.methods.favorite = async function (
   articleId: Types.ObjectId
 ): Promise<void> {
-  if (this.favorites.includes(articleId)) {
+  if (this.isFavorite(articleId.toString())) {
     return;
   }
 
@@ -167,12 +196,13 @@ UserSchema.methods.favorite = async function (
 UserSchema.methods.unfavorite = async function (
   articleId: Types.ObjectId
 ): Promise<void> {
-  const idx: number = this.favorites.indexOf(articleId);
-
-  if (idx < 0) {
+  if (!this.isFavorite(articleId.toString())) {
     return;
   }
 
+  const idx: number = this.favorites.findIndex(
+    (favorite: Types.ObjectId) => favorite.toString() === articleId.toString()
+  );
   this.favorites.splice(idx, 1);
   await this.save();
 };
