@@ -1,11 +1,13 @@
 import { authorization, AuthPayload } from '@middlewares/auth';
 import { ArticleDocument } from '@models/Article';
+import { CommentDocument } from '@models/Comment';
 import models from '@models/index';
 import { NextFunction, Response, Router } from 'express';
 import { Request as JwtRequest } from 'express-jwt';
 
 interface ArticleRequest<T = {}> extends JwtRequest<T> {
   article?: ArticleDocument;
+  comment?: CommentDocument;
 }
 
 const articles: Router = Router();
@@ -28,6 +30,31 @@ articles.param(
       }
 
       req.article = article;
+      next();
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+articles.param(
+  'commentId',
+  async (
+    req: ArticleRequest,
+    res: Response,
+    next: NextFunction,
+    id: string
+  ): Promise<void> => {
+    try {
+      const comment = await models.Comment.findById(id).exec();
+
+      if (!comment) {
+        res.sendStatus(403);
+
+        return;
+      }
+
+      req.comment = comment;
       next();
     } catch (error) {
       next(error);
@@ -74,11 +101,7 @@ articles.get(
   ): Promise<void> => {
     try {
       const { auth, article } = req;
-      let user;
-
-      if (auth?.id) {
-        user = await models.User.findById(auth.id).exec();
-      }
+      const user = await models.User.findById(auth?.id).exec();
 
       res.json({ article: await article!.getArticle(user) });
     } catch (error) {
@@ -219,6 +242,107 @@ articles.delete(
       await user.unfavorite(article!.id);
       await article!.updateFavoriteCount();
       res.json({ article: article!.getArticle(user) });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+articles.get(
+  '/:article/comments',
+  authorization.optional,
+  async (
+    req: ArticleRequest<AuthPayload>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { article, auth } = req;
+      const user = await models.User.findById(auth?.id).exec();
+      const populatedArticle:
+        | Omit<ArticleDocument, 'comments'> & {
+            comments: CommentDocument[];
+          } = await article!.populate({
+        path: 'comments',
+        populate: { path: 'author' },
+        options: {
+          sort: {
+            createdAt: 'desc',
+          },
+        },
+      });
+
+      res.json({
+        comments: populatedArticle.comments.map((comment) =>
+          comment?.getComment(user)
+        ),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+articles.post(
+  '/:article/comments',
+  authorization.required,
+  async (
+    req: ArticleRequest<AuthPayload>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { article, auth, body } = req;
+      const user = await models.User.findById(auth?.id).exec();
+
+      if (!user) {
+        res.sendStatus(401);
+
+        return;
+      }
+
+      const comment = await models.Comment.create({
+        body: body?.comment?.body,
+      });
+      comment.article = article!._id;
+      comment.author = user._id;
+
+      await comment.save();
+      res.json({ comment: comment.getComment(user) });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+articles.delete(
+  '/:articles/comments/:commentId',
+  authorization.required,
+  async (
+    req: ArticleRequest<AuthPayload>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { comment, article, auth } = req;
+      const user = await models.User.findById(auth?.id).exec();
+
+      if (!user) {
+        res.sendStatus(401);
+
+        return;
+      }
+
+      if (comment!.id !== user.id) {
+        res.sendStatus(403);
+
+        return;
+      }
+
+      article?.comments.remove(comment!._id);
+      await article?.save();
+      await comment!.remove();
+      res.sendStatus(204);
     } catch (error) {
       next(error);
     }

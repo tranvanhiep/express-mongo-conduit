@@ -11,6 +11,7 @@ export interface IArticle {
   tagList?: Types.Array<string>;
   favoritesCount: number;
   author: Types.ObjectId;
+  comments: Types.Array<Types.ObjectId>;
 }
 
 export interface ArticleContent {
@@ -35,7 +36,9 @@ export interface ArticleMethods {
 export type ArticleModel = Model<IArticle, {}, ArticleMethods>;
 
 export type ArticleDocument =
-  | (Document<any, {}, IArticle> & { _id: Types.ObjectId } & IArticle &
+  | (Document<Types.ObjectId, {}, IArticle> & {
+      _id: Types.ObjectId;
+    } & IArticle &
       ArticleMethods)
   | null;
 
@@ -63,7 +66,16 @@ const ArticleSchema = new Schema<IArticle, ArticleModel, ArticleMethods>(
     },
     tagList: [String],
     favoritesCount: Number,
-    author: { type: Schema.Types.ObjectId, ref: 'User' },
+    author: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    comments: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Comment',
+      },
+    ],
   },
   { timestamps: true }
 );

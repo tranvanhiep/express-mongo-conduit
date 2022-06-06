@@ -34,7 +34,7 @@ export interface IUserMethods {
   setPassword(password: string): void;
   generateJwt(): string;
   getUserInfo(needToken?: boolean): UserInfo;
-  getProfileInfo(currentUser?: UserDocument): ProfileInfo;
+  getProfileInfo(user?: UserDocument): ProfileInfo;
   isFollowing(userId: string): boolean;
   follow(userId: Types.ObjectId): Promise<void>;
   unfollow(userId: Types.ObjectId): Promise<void>;
@@ -46,7 +46,7 @@ export interface IUserMethods {
 export type UserModel = Model<IUser, {}, IUserMethods>;
 
 export type UserDocument =
-  | (Document<any, {}, IUser> & {
+  | (Document<Types.ObjectId, {}, IUser> & {
       _id: Types.ObjectId;
     } & IUser &
       IUserMethods)
@@ -73,8 +73,18 @@ const UserSchema = new Schema<IUser, UserModel, IUserMethods>(
     },
     bio: String,
     image: String,
-    favorites: [{ type: Schema.Types.ObjectId, ref: 'Article' }],
-    following: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    favorites: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Article',
+      },
+    ],
+    following: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     hash: String,
     salt: String,
   },
@@ -135,13 +145,13 @@ UserSchema.methods.getUserInfo = function (
 };
 
 UserSchema.methods.getProfileInfo = function (
-  currentUser?: UserDocument
+  user?: UserDocument
 ): ProfileInfo {
   return {
     username: this.username,
     bio: this.bio,
     image: this.image,
-    following: !currentUser ? false : currentUser.isFollowing(this.id),
+    following: !user ? false : user.isFollowing(this.id),
   };
 };
 
@@ -169,10 +179,7 @@ UserSchema.methods.unfollow = async function (
     return;
   }
 
-  const idx: number = this.following.findIndex(
-    (follow: Types.ObjectId) => follow.toString() === userId.toString()
-  );
-  this.following.splice(idx, 1);
+  this.following.remove(userId);
   await this.save();
 };
 
@@ -200,10 +207,7 @@ UserSchema.methods.unfavorite = async function (
     return;
   }
 
-  const idx: number = this.favorites.findIndex(
-    (favorite: Types.ObjectId) => favorite.toString() === articleId.toString()
-  );
-  this.favorites.splice(idx, 1);
+  this.favorites.remove(articleId);
   await this.save();
 };
 
