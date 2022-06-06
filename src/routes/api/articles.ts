@@ -63,6 +63,98 @@ articles.param(
   }
 );
 
+articles.get(
+  '/',
+  authorization.optional,
+  async (
+    req: JwtRequest<AuthPayload>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { auth, query: queryParams } = req;
+      const { tag, author, favorited, limit, offset } = queryParams;
+      const limitNo: number = !limit ? 20 : Number(limit);
+      const offsetNo: number = !offset ? 0 : Number(offset);
+      const authorDoc = await models.User.findOne({ username: author }).exec();
+      const favoriterDoc = await models.User.findOne({
+        username: favorited,
+      }).exec();
+      const query: any = {};
+
+      if (authorDoc) {
+        query.author = authorDoc._id;
+      }
+
+      if (favoriterDoc) {
+        query._id = { $in: favoriterDoc.favorites };
+      }
+
+      if (tag) {
+        query.tagList = { $in: [tag] };
+      }
+
+      const articlesDoc = await models.Article.find(query)
+        .limit(limitNo)
+        .skip(offsetNo)
+        .sort({ createdAt: 'desc' })
+        .populate({ path: 'author' })
+        .exec();
+      const articlesCount = await models.Article.countDocuments(query).exec();
+      const user = await models.User.findById(auth?.id).exec();
+
+      res.json({
+        articles: articlesDoc.map((article) => article.getArticle(user)),
+        articlesCount,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+articles.get(
+  '/feed',
+  authorization.required,
+  async (
+    req: JwtRequest<AuthPayload>,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { auth, query: queryParams } = req;
+      const { limit, offset } = queryParams;
+      const limitNo: number = !limit ? 20 : Number(limit);
+      const offsetNo: number = !offset ? 0 : Number(offset);
+      const user = await models.User.findById(auth?.id).exec();
+
+      if (!user) {
+        res.sendStatus(401);
+
+        return;
+      }
+
+      const query: any = {
+        author: { $in: user.following },
+      };
+      const articlesDoc = await models.Article.find(query)
+        .limit(limitNo)
+        .skip(offsetNo)
+        .populate({ path: 'author' })
+        .sort({ createdAt: 'desc' })
+        .exec();
+      const articlesCount = await models.Article.countDocuments(query).exec();
+
+      res.json({
+        articles: articlesDoc.map((article) => article.getArticle(user)),
+        articlesCount,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 articles.post(
   '/',
   authorization.required,
