@@ -35,10 +35,10 @@ export interface IUserMethods {
   generateJwt(): string;
   getUserInfo(needToken?: boolean): UserInfo;
   getProfileInfo(user?: UserDocument): ProfileInfo;
-  isFollowing(userId: string): boolean;
+  isFollowing(userId: Types.ObjectId): boolean;
   follow(userId: Types.ObjectId): Promise<void>;
   unfollow(userId: Types.ObjectId): Promise<void>;
-  isFavorite(articleId: string): boolean;
+  isFavorite(articleId: Types.ObjectId): boolean;
   favorite(articleId: Types.ObjectId): Promise<void>;
   unfavorite(articleId: Types.ObjectId): Promise<void>;
 }
@@ -151,20 +151,20 @@ UserSchema.methods.getProfileInfo = function (
     username: this.username,
     bio: this.bio,
     image: this.image,
-    following: !user ? false : user.isFollowing(this.id),
+    following: !user ? false : user.isFollowing(this._id),
   };
 };
 
-UserSchema.methods.isFollowing = function (userId: string): boolean {
+UserSchema.methods.isFollowing = function (userId: Types.ObjectId): boolean {
   return this.following.some(
-    (following: Types.ObjectId) => following.toString() === userId
+    (following: Types.ObjectId) => following.toString() === userId.toString()
   );
 };
 
 UserSchema.methods.follow = async function (
   userId: Types.ObjectId
 ): Promise<void> {
-  if (this.isFollowing(userId.toString())) {
+  if (this.isFollowing(userId)) {
     return;
   }
 
@@ -175,7 +175,7 @@ UserSchema.methods.follow = async function (
 UserSchema.methods.unfollow = async function (
   userId: Types.ObjectId
 ): Promise<void> {
-  if (!this.isFollowing(userId.toString())) {
+  if (!this.isFollowing(userId)) {
     return;
   }
 
@@ -183,16 +183,16 @@ UserSchema.methods.unfollow = async function (
   await this.save();
 };
 
-UserSchema.methods.isFavorite = function (articleId: string): boolean {
+UserSchema.methods.isFavorite = function (articleId: Types.ObjectId): boolean {
   return this.favorites.some(
-    (favorite: Types.ObjectId) => favorite.toString() === articleId
+    (favorite: Types.ObjectId) => favorite.toString() === articleId.toString()
   );
 };
 
 UserSchema.methods.favorite = async function (
   articleId: Types.ObjectId
 ): Promise<void> {
-  if (this.isFavorite(articleId.toString())) {
+  if (this.isFavorite(articleId)) {
     return;
   }
 
@@ -203,7 +203,7 @@ UserSchema.methods.favorite = async function (
 UserSchema.methods.unfavorite = async function (
   articleId: Types.ObjectId
 ): Promise<void> {
-  if (!this.isFavorite(articleId.toString())) {
+  if (!this.isFavorite(articleId)) {
     return;
   }
 

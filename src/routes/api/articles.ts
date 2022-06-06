@@ -29,6 +29,7 @@ articles.param(
         return;
       }
 
+      await article.populate({ path: 'author' });
       req.article = article;
       next();
     } catch (error) {
@@ -84,7 +85,7 @@ articles.post(
 
       article.author = user._id;
       await article.save();
-      res.json({ article: await article.getArticle(user) });
+      res.json({ article: article.getArticle(user) });
     } catch (error) {
       next(error);
     }
@@ -103,7 +104,7 @@ articles.get(
       const { auth, article } = req;
       const user = await models.User.findById(auth?.id).exec();
 
-      res.json({ article: await article!.getArticle(user) });
+      res.json({ article: article!.getArticle(user) });
     } catch (error) {
       next(error);
     }
@@ -128,7 +129,7 @@ articles.put(
         return;
       }
 
-      if (article?.author.toString() !== auth?.id?.toString()) {
+      if (article!.author._id.toString() !== auth?.id?.toString()) {
         res.sendStatus(403);
 
         return;

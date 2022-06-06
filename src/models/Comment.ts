@@ -1,5 +1,4 @@
 import { Document, Model, model, Schema, Types } from 'mongoose';
-import models from '@models/index';
 import { ProfileInfo, UserDocument } from './User';
 
 export interface IComment {
@@ -17,7 +16,7 @@ export interface CommentContent {
 }
 
 export interface CommentMethods {
-  getComment(user?: UserDocument): Promise<CommentContent>;
+  getComment(user?: UserDocument): CommentContent;
 }
 
 export type CommentModel = Model<IComment, {}, CommentMethods>;
@@ -47,17 +46,15 @@ const CommentSchema = new Schema<IComment, CommentModel, CommentMethods>(
   { timestamps: true }
 );
 
-CommentSchema.methods.getComment = async function (
+CommentSchema.methods.getComment = function (
   user?: UserDocument
-): Promise<CommentContent> {
-  const author = await models.User.findById(this.author).exec();
-
+): CommentContent {
   return {
     id: this._id,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
     body: this.body,
-    author: author?.getProfileInfo(user) as ProfileInfo,
+    author: this.author.getProfileInfo(user),
   };
 };
 

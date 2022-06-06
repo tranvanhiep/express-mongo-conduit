@@ -28,7 +28,7 @@ export interface ArticleContent {
 }
 
 export interface ArticleMethods {
-  getArticle(user?: UserDocument): Promise<ArticleContent>;
+  getArticle(user?: UserDocument): ArticleContent;
   generateSlug(): void;
   updateFavoriteCount(): Promise<void>;
 }
@@ -89,11 +89,9 @@ ArticleSchema.methods.generateSlug = function (): void {
   this.slug = slug(this.title);
 };
 
-ArticleSchema.methods.getArticle = async function (
+ArticleSchema.methods.getArticle = function (
   user?: UserDocument
-): Promise<ArticleContent> {
-  const author = await models.User.findById(this.author).exec();
-
+): ArticleContent {
   return {
     slug: this.slug,
     title: this.title,
@@ -103,8 +101,8 @@ ArticleSchema.methods.getArticle = async function (
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
     favoritesCount: this.favoritesCount,
-    favorite: user ? user.isFavorite(this.id) : false,
-    author: author?.getProfileInfo(user) as ProfileInfo,
+    favorite: user ? user.isFavorite(this._id) : false,
+    author: this.author.getProfileInfo(user),
   };
 };
 
