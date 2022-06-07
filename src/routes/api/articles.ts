@@ -5,7 +5,7 @@ import models from '@models/index';
 import { NextFunction, Response, Router } from 'express';
 import { Request as JwtRequest } from 'express-jwt';
 
-interface ArticleRequest<T = {}> extends JwtRequest<T> {
+interface ArticleRequest<T = any> extends JwtRequest<T> {
   article?: ArticleDocument;
   comment?: CommentDocument;
 }

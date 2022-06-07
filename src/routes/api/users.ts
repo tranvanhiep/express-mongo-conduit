@@ -8,7 +8,7 @@ const users: Router = Router();
 
 users.post(
   '/users/login',
-  (req: Request, res: Response, next: NextFunction) => {
+  (req: Request, res: Response, next: NextFunction): void => {
     const userBody = req.body?.user;
 
     if (!userBody) {
@@ -35,7 +35,6 @@ users.post(
           res.status(422).json(info);
         }
 
-        user.token = user.generateJwt();
         res.json({ user: user.getUserInfo(true) });
       }
     )(req, res, next);
@@ -45,30 +44,30 @@ users.post(
 users.post(
   '/users',
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const userBody = req.body?.user;
-
-    if (!userBody) {
-      res.sendStatus(422);
-    }
-
-    const { username, email, password } = userBody;
-
-    if (!username) {
-      res.status(422).json({ errors: { username: "can't be blank" } });
-    }
-
-    if (!email) {
-      res.status(422).json({ errors: { email: "can't be blank" } });
-    }
-
-    if (!password) {
-      res.status(422).json({ errors: { password: "can't be blank" } });
-    }
-
-    const user = await models.User.create({ username, email });
-    user.setPassword(password);
-
     try {
+      const userBody = req.body?.user;
+
+      if (!userBody) {
+        res.sendStatus(422);
+      }
+
+      const { username, email, password } = userBody;
+
+      if (!username) {
+        res.status(422).json({ errors: { username: "can't be blank" } });
+      }
+
+      if (!email) {
+        res.status(422).json({ errors: { email: "can't be blank" } });
+      }
+
+      if (!password) {
+        res.status(422).json({ errors: { password: "can't be blank" } });
+      }
+
+      const user = await models.User.create({ username, email });
+      user.setPassword(password);
+
       await user.save();
       res.json({ user: user.getUserInfo(true) });
     } catch (error) {

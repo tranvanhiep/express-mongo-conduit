@@ -51,8 +51,6 @@ if (!isProd) {
   app.use(errorHandler());
 }
 
-connect(process.env.MONGODB_URI as string);
-
 if (!isProd) {
   set('debug', true);
 }
@@ -107,6 +105,13 @@ app.use(
   }
 );
 
-app.listen(process.env.PORT, (): void => {
-  console.log(`Listening on port ${process.env.PORT}`);
-});
+connect(process.env.MONGODB_URI as string, {
+  user: process.env.DB_USER,
+  pass: process.env.DB_PASSWORD,
+})
+  .then(() => {
+    app.listen(process.env.PORT, (): void => {
+      console.log(`Listening on port ${process.env.PORT}`);
+    });
+  })
+  .catch(console.error);
