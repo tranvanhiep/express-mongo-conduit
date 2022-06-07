@@ -19,7 +19,7 @@ export interface UserInfo {
   email: string;
   bio: string;
   image: string;
-  token?: string;
+  token: string;
 }
 
 export interface ProfileInfo {
@@ -33,7 +33,7 @@ export interface IUserMethods {
   validPassword(password: string): boolean;
   setPassword(password: string): void;
   generateJwt(): string;
-  getUserInfo(needToken?: boolean): UserInfo;
+  getUserInfo(): UserInfo;
   getProfileInfo(user?: UserDocument): ProfileInfo;
   isFollowing(userId: Types.ObjectId): boolean;
   follow(userId: Types.ObjectId): Promise<void>;
@@ -107,13 +107,9 @@ UserSchema.methods.validPassword = function (password: string): boolean {
 
 UserSchema.methods.setPassword = function (password: string): void {
   this.salt = crypto.randomBytes(16).toString('hex');
-  this.hash = crypto.pbkdf2Sync(
-    password,
-    this.salt,
-    iterations,
-    keylen,
-    digest
-  );
+  this.hash = crypto
+    .pbkdf2Sync(password, this.salt, iterations, keylen, digest)
+    .toString('hex');
 };
 
 UserSchema.methods.generateJwt = function (): string {
@@ -127,21 +123,14 @@ UserSchema.methods.generateJwt = function (): string {
   );
 };
 
-UserSchema.methods.getUserInfo = function (
-  needToken: boolean = false
-): UserInfo {
-  const userInfo: UserInfo = {
+UserSchema.methods.getUserInfo = function (): UserInfo {
+  return {
     username: this.username,
     email: this.email,
     bio: this.bio,
     image: this.image,
+    token: this.generateJwt(),
   };
-
-  if (needToken) {
-    return { ...userInfo, token: this.generateJwt() };
-  }
-
-  return userInfo;
 };
 
 UserSchema.methods.getProfileInfo = function (
