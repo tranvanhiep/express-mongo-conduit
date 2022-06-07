@@ -11,7 +11,7 @@ export interface AuthPayload {
 const getToken: TokenGetter = (req: Request): string | undefined => {
   const auth: string[] = req.headers?.authorization?.split(' ') ?? [];
 
-  if (auth.length && auth[0] === 'Bearer') {
+  if (auth.length && auth[0] === 'Token') {
     return auth[1];
   }
 
