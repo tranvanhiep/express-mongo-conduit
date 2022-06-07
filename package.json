@@ -5,6 +5,7 @@
   "main": "main.ts",
   "scripts": {
     "start": "nodemon --exec babel-node --extensions '.ts' src/main.ts",
+    "debug": "nodemon --inspect --exec babel-node --extensions '.ts' src/main.ts --source-maps",
     "build": "babel --extensions '.ts' src --out-dir dist",
     "format": "prettier --write ."
   },
