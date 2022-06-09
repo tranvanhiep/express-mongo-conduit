@@ -59,7 +59,7 @@ const UserSchema = new Schema<IUser, UserModel, IUserMethods>(
       lowercase: true,
       unique: true,
       required: [true, "can't be blank"],
-      match: [/^[a-zA-Z0-9]+$/, 'is invalid'],
+      match: [/^\w+$/, 'is invalid'],
       index: true,
       trim: true,
     },
@@ -157,8 +157,8 @@ UserSchema.methods.follow = async function (
     return;
   }
 
-  this.following.push(this._id);
-  await this.save();
+  this.following.push(userId);
+  await this.save({ validateModifiedOnly: true });
 };
 
 UserSchema.methods.unfollow = async function (
@@ -169,7 +169,7 @@ UserSchema.methods.unfollow = async function (
   }
 
   this.following.remove(userId);
-  await this.save();
+  await this.save({ validateModifiedOnly: true });
 };
 
 UserSchema.methods.isFavorite = function (articleId: Types.ObjectId): boolean {
@@ -186,7 +186,7 @@ UserSchema.methods.favorite = async function (
   }
 
   this.favorites.push(articleId);
-  await this.save();
+  await this.save({ validateModifiedOnly: true });
 };
 
 UserSchema.methods.unfavorite = async function (
@@ -197,7 +197,7 @@ UserSchema.methods.unfavorite = async function (
   }
 
   this.favorites.remove(articleId);
-  await this.save();
+  await this.save({ validateModifiedOnly: true });
 };
 
 const User: UserModel = model<IUser, UserModel>('User', UserSchema);

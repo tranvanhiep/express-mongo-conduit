@@ -1,10 +1,9 @@
 import { Request } from 'express';
 import { expressjwt, TokenGetter } from 'express-jwt';
 import { Secret } from 'jsonwebtoken';
-import { Types } from 'mongoose';
 
 export interface AuthPayload {
-  id: Types.ObjectId;
+  id: string;
   username: string;
 }
 

@@ -2,12 +2,13 @@ import { authorization, AuthPayload } from '@middlewares/auth';
 import { ArticleDocument } from '@models/Article';
 import { CommentDocument } from '@models/Comment';
 import models from '@models/index';
+import { UserDocument } from '@models/User';
 import { NextFunction, Response, Router } from 'express';
 import { Request as JwtRequest } from 'express-jwt';
 
 interface ArticleRequest<T = any> extends JwtRequest<T> {
-  article?: ArticleDocument;
-  comment?: CommentDocument;
+  article?: ArticleDocument<{ author: UserDocument }>;
+  comment?: CommentDocument<{ author: UserDocument }>;
 }
 
 const articles: Router = Router();
@@ -21,7 +22,9 @@ articles.param(
     slug: string
   ): Promise<void> => {
     try {
-      const article = await models.Article.findOne({ slug }).exec();
+      const article = await models.Article.findOne<ArticleDocument>({ slug })
+        .populate<{ author: UserDocument }>({ path: 'author' })
+        .exec();
 
       if (!article) {
         res.sendStatus(404);
@@ -29,7 +32,6 @@ articles.param(
         return;
       }
 
-      await article.populate({ path: 'author' });
       req.article = article;
       next();
     } catch (error) {
@@ -47,7 +49,9 @@ articles.param(
     id: string
   ): Promise<void> => {
     try {
-      const comment = await models.Comment.findById(id).exec();
+      const comment = await models.Comment.findById<CommentDocument>(id)
+        .populate<{ author: UserDocument }>({ path: 'author' })
+        .exec();
 
       if (!comment) {
         res.sendStatus(403);
@@ -177,6 +181,7 @@ articles.post(
 
       article.author = user._id;
       await article.save();
+      await article.populate({ path: 'author' });
       res.json({ article: article.getArticle(user) });
     } catch (error) {
       next(error);
@@ -221,7 +226,7 @@ articles.put(
         return;
       }
 
-      if (article!.author._id.toString() !== auth?.id?.toString()) {
+      if (article!.author?.id !== auth?.id) {
         res.sendStatus(403);
 
         return;
@@ -247,7 +252,7 @@ articles.put(
         article!.body = articleBody;
       }
 
-      await article!.save();
+      await article!.save({ validateModifiedOnly: true });
       res.json({ article: article!.getArticle(user) });
     } catch (error) {
       next(error);
@@ -273,7 +278,7 @@ articles.delete(
         return;
       }
 
-      if (article?.author.toString() !== auth?.id?.toString()) {
+      if (article!.author?.id !== auth?.id) {
         res.sendStatus(403);
 
         return;
@@ -342,7 +347,7 @@ articles.delete(
 );
 
 articles.get(
-  '/:article/comments',
+  '/:slug/comments',
   authorization.optional,
   async (
     req: ArticleRequest<AuthPayload>,
@@ -377,7 +382,7 @@ articles.get(
 );
 
 articles.post(
-  '/:article/comments',
+  '/:slug/comments',
   authorization.required,
   async (
     req: ArticleRequest<AuthPayload>,
@@ -401,6 +406,9 @@ articles.post(
       comment.author = user._id;
 
       await comment.save();
+      article!.comments.push(comment._id);
+      await article!.save();
+      await comment.populate({ path: 'author' });
       res.json({ comment: comment.getComment(user) });
     } catch (error) {
       next(error);
@@ -409,7 +417,7 @@ articles.post(
 );
 
 articles.delete(
-  '/:articles/comments/:commentId',
+  '/:slug/comments/:commentId',
   authorization.required,
   async (
     req: ArticleRequest<AuthPayload>,
@@ -426,14 +434,14 @@ articles.delete(
         return;
       }
 
-      if (comment!.id !== user.id) {
+      if (comment!.author?.id !== user.id) {
         res.sendStatus(403);
 
         return;
       }
 
       article?.comments.remove(comment!._id);
-      await article?.save();
+      await article?.save({ validateModifiedOnly: true });
       await comment!.remove();
       res.sendStatus(204);
     } catch (error) {

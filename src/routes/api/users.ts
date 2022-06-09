@@ -35,7 +35,7 @@ users.post(
           res.status(422).json(info);
         }
 
-        res.json({ user: user.getUserInfo(true) });
+        res.json({ user: user.getUserInfo() });
       }
     )(req, res, next);
   }
@@ -69,7 +69,7 @@ users.post(
       user.setPassword(password);
 
       await user.save();
-      res.json({ user: user.getUserInfo(true) });
+      res.json({ user: user.getUserInfo() });
     } catch (error) {
       next(error);
     }
@@ -145,7 +145,7 @@ users.put(
         user.setPassword(password);
       }
 
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
       res.json({ user: user.getUserInfo() });
     } catch (error) {
       next(error);

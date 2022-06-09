@@ -21,7 +21,7 @@ export interface ArticleContent {
   body?: string;
   tagList?: string[];
   favoritesCount: number;
-  favorite: boolean;
+  favorited: boolean;
   author: ProfileInfo;
   createdAt: string;
   updatedAt: string;
@@ -35,11 +35,15 @@ export interface ArticleMethods {
 
 export type ArticleModel = Model<IArticle, {}, ArticleMethods>;
 
-export type ArticleDocument =
-  | (Document<Types.ObjectId, {}, IArticle> & {
-      _id: Types.ObjectId;
-    } & IArticle &
-      ArticleMethods)
+export type ArticleDocument<T = {}> =
+  | (Omit<
+      Document<Types.ObjectId, {}, IArticle> & {
+        _id: Types.ObjectId;
+      } & IArticle &
+        ArticleMethods,
+      keyof T
+    > &
+      T)
   | null;
 
 const ArticleSchema = new Schema<IArticle, ArticleModel, ArticleMethods>(
@@ -65,7 +69,10 @@ const ArticleSchema = new Schema<IArticle, ArticleModel, ArticleMethods>(
       trim: true,
     },
     tagList: [String],
-    favoritesCount: Number,
+    favoritesCount: {
+      type: Number,
+      default: 0,
+    },
     author: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -81,7 +88,10 @@ const ArticleSchema = new Schema<IArticle, ArticleModel, ArticleMethods>(
 );
 
 ArticleSchema.pre(/^validate$/, function (next): void {
-  this.generateSlug();
+  if (!this.slug) {
+    this.generateSlug();
+  }
+
   next();
 });
 
@@ -101,7 +111,7 @@ ArticleSchema.methods.getArticle = function (
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
     favoritesCount: this.favoritesCount,
-    favorite: user ? user.isFavorite(this._id) : false,
+    favorited: user ? user.isFavorite(this._id) : false,
     author: this.author.getProfileInfo(user),
   };
 };
@@ -112,7 +122,7 @@ ArticleSchema.methods.updateFavoriteCount = async function (): Promise<void> {
   }).exec();
 
   this.favoritesCount = count;
-  await this.save();
+  await this.save({ validateModifiedOnly: true });
 };
 
 const Article: ArticleModel = model<IArticle, ArticleModel>(

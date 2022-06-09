@@ -11,9 +11,12 @@ export const localStrategy: Strategy = new Strategy(
       const user = await models.User.findOne({ email }).exec();
 
       if (!user || !user.validPassword(password)) {
-        return done(null, false, {
-          message: 'email or password is invalid',
-        });
+        return done(
+          {
+            message: 'email or password is invalid',
+          },
+          null
+        );
       }
 
       done(null, user);

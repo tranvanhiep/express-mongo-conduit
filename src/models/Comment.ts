@@ -21,11 +21,15 @@ export interface CommentMethods {
 
 export type CommentModel = Model<IComment, {}, CommentMethods>;
 
-export type CommentDocument =
-  | (Document<Types.ObjectId, {}, IComment> & {
-      _id: Types.ObjectId;
-    } & IComment &
-      CommentMethods)
+export type CommentDocument<T = {}> =
+  | (Omit<
+      Document<Types.ObjectId, {}, IComment> & {
+        _id: Types.ObjectId;
+      } & IComment &
+        CommentMethods,
+      keyof T
+    > &
+      T)
   | null;
 
 const CommentSchema = new Schema<IComment, CommentModel, CommentMethods>(
