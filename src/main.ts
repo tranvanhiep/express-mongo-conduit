@@ -8,10 +8,9 @@ import session, { SessionOptions } from 'express-session';
 import MongoStore from 'connect-mongo';
 import errorHandler from 'errorhandler';
 import { connect, set } from 'mongoose';
-import routes from '@routes/index';
 import passport from 'passport';
 import { localStrategy } from './middlewares/passport';
-import '@models/index';
+import routes from '@routes/routes';
 
 interface CustomError extends Error {
   status: number;

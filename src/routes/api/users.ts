@@ -1,7 +1,7 @@
 import { authorization, AuthPayload } from '@middlewares/auth';
+import User from '@models/User';
 import { NextFunction, Request, Response, Router } from 'express';
 import { Request as JwtRequest } from 'express-jwt';
-import models from '@models/index';
 import passport from 'passport';
 
 const users: Router = Router();
@@ -65,7 +65,7 @@ users.post(
         res.status(422).json({ errors: { password: "can't be blank" } });
       }
 
-      const user = await models.User.create({ username, email });
+      const user = await User.create({ username, email });
       user.setPassword(password);
 
       await user.save();
@@ -85,7 +85,7 @@ users.get(
     next: NextFunction
   ): Promise<void> => {
     try {
-      const user = await models.User.findById(req.auth?.id).exec();
+      const user = await User.findById(req.auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);
@@ -115,7 +115,7 @@ users.put(
     }
 
     try {
-      const user = await models.User.findById(auth?.id).exec();
+      const user = await User.findById(auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);

@@ -1,7 +1,6 @@
 import { authorization, AuthPayload } from '@middlewares/auth';
-import { UserDocument } from '@models/User';
+import User, { UserDocument } from '@models/User';
 import { NextFunction, Response, Router } from 'express';
-import models from '@models/index';
 import { Request as JwtRequest } from 'express-jwt';
 
 const profiles: Router = Router();
@@ -19,7 +18,7 @@ profiles.param(
     username: string
   ): Promise<void> => {
     try {
-      const profile = await models.User.findOne({ username }).exec();
+      const profile = await User.findOne({ username }).exec();
 
       if (!profile) {
         res.sendStatus(404);
@@ -52,7 +51,7 @@ profiles.get(
         return;
       }
 
-      const user: UserDocument = await models.User.findById(auth.id).exec();
+      const user: UserDocument = await User.findById(auth.id).exec();
 
       res.json({ profile: profile!.getProfileInfo(user) });
     } catch (error) {
@@ -71,7 +70,7 @@ profiles.post(
   ): Promise<void> => {
     try {
       const { profile, auth } = req;
-      const user: UserDocument = await models.User.findById(auth?.id).exec();
+      const user: UserDocument = await User.findById(auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);
@@ -97,7 +96,7 @@ profiles.delete(
   ): Promise<void> => {
     try {
       const { profile, auth } = req;
-      const user = await models.User.findById(auth?.id).exec();
+      const user = await User.findById(auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);

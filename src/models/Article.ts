@@ -1,6 +1,5 @@
+import User, { ProfileInfo, UserDocument } from '@models/User';
 import { Document, model, Model, Schema, Types } from 'mongoose';
-import { ProfileInfo, UserDocument } from './User';
-import models from '@models/index';
 import slug from 'slug';
 
 export interface IArticle {
@@ -87,7 +86,7 @@ const ArticleSchema = new Schema<IArticle, ArticleModel, ArticleMethods>(
   { timestamps: true }
 );
 
-ArticleSchema.pre(/^validate$/, function (next): void {
+ArticleSchema.pre('validate', function (next): void {
   if (!this.slug) {
     this.generateSlug();
   }
@@ -117,7 +116,7 @@ ArticleSchema.methods.getArticle = function (
 };
 
 ArticleSchema.methods.updateFavoriteCount = async function (): Promise<void> {
-  const count: number = await models.User.countDocuments({
+  const count: number = await User.countDocuments({
     favorites: { $in: [this._id] },
   }).exec();
 

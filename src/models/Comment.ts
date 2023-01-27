@@ -1,5 +1,5 @@
+import { ProfileInfo, UserDocument } from '@models/User';
 import { Document, Model, model, Schema, Types } from 'mongoose';
-import { ProfileInfo, UserDocument } from './User';
 
 export interface IComment {
   body: string;
