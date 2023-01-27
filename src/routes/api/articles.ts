@@ -1,8 +1,7 @@
 import { authorization, AuthPayload } from '@middlewares/auth';
-import { ArticleDocument } from '@models/Article';
-import { CommentDocument } from '@models/Comment';
-import models from '@models/index';
-import { UserDocument } from '@models/User';
+import Article, { ArticleDocument } from '@models/Article';
+import Comment, { CommentDocument } from '@models/Comment';
+import User, { UserDocument } from '@models/User';
 import { NextFunction, Response, Router } from 'express';
 import { Request as JwtRequest } from 'express-jwt';
 
@@ -22,7 +21,7 @@ articles.param(
     slug: string
   ): Promise<void> => {
     try {
-      const article = await models.Article.findOne<ArticleDocument>({ slug })
+      const article = await Article.findOne<ArticleDocument>({ slug })
         .populate<{ author: UserDocument }>({ path: 'author' })
         .exec();
 
@@ -49,7 +48,7 @@ articles.param(
     id: string
   ): Promise<void> => {
     try {
-      const comment = await models.Comment.findById<CommentDocument>(id)
+      const comment = await Comment.findById<CommentDocument>(id)
         .populate<{ author: UserDocument }>({ path: 'author' })
         .exec();
 
@@ -80,8 +79,8 @@ articles.get(
       const { tag, author, favorited, limit, offset } = queryParams;
       const limitNo: number = !limit ? 20 : Number(limit);
       const offsetNo: number = !offset ? 0 : Number(offset);
-      const authorDoc = await models.User.findOne({ username: author }).exec();
-      const favoriterDoc = await models.User.findOne({
+      const authorDoc = await User.findOne({ username: author }).exec();
+      const favoriterDoc = await User.findOne({
         username: favorited,
       }).exec();
       const query: any = {};
@@ -98,14 +97,14 @@ articles.get(
         query.tagList = { $in: [tag] };
       }
 
-      const articlesDoc = await models.Article.find(query)
+      const articlesDoc = await Article.find(query)
         .limit(limitNo)
         .skip(offsetNo)
         .sort({ createdAt: 'desc' })
         .populate({ path: 'author' })
         .exec();
-      const articlesCount = await models.Article.countDocuments(query).exec();
-      const user = await models.User.findById(auth?.id).exec();
+      const articlesCount = await Article.countDocuments(query).exec();
+      const user = await User.findById(auth?.id).exec();
 
       res.json({
         articles: articlesDoc.map((article) => article.getArticle(user)),
@@ -130,7 +129,7 @@ articles.get(
       const { limit, offset } = queryParams;
       const limitNo: number = !limit ? 20 : Number(limit);
       const offsetNo: number = !offset ? 0 : Number(offset);
-      const user = await models.User.findById(auth?.id).exec();
+      const user = await User.findById(auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);
@@ -141,13 +140,13 @@ articles.get(
       const query: any = {
         author: { $in: user.following },
       };
-      const articlesDoc = await models.Article.find(query)
+      const articlesDoc = await Article.find(query)
         .limit(limitNo)
         .skip(offsetNo)
         .populate({ path: 'author' })
         .sort({ createdAt: 'desc' })
         .exec();
-      const articlesCount = await models.Article.countDocuments(query).exec();
+      const articlesCount = await Article.countDocuments(query).exec();
 
       res.json({
         articles: articlesDoc.map((article) => article.getArticle(user)),
@@ -169,7 +168,7 @@ articles.post(
   ): Promise<void> => {
     try {
       const { auth, body } = req;
-      const user = await models.User.findById(auth?.id).exec();
+      const user = await User.findById(auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);
@@ -177,7 +176,7 @@ articles.post(
         return;
       }
 
-      const article = await models.Article.create(body.article);
+      const article = await Article.create(body.article);
 
       article.author = user._id;
       await article.save();
@@ -199,7 +198,7 @@ articles.get(
   ): Promise<void> => {
     try {
       const { auth, article } = req;
-      const user = await models.User.findById(auth?.id).exec();
+      const user = await User.findById(auth?.id).exec();
 
       res.json({ article: article!.getArticle(user) });
     } catch (error) {
@@ -218,7 +217,7 @@ articles.put(
   ): Promise<void> => {
     try {
       const { article, auth, body } = req;
-      const user = await models.User.findById(auth?.id).exec();
+      const user = await User.findById(auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);
@@ -270,7 +269,7 @@ articles.delete(
   ): Promise<void> => {
     try {
       const { article, auth } = req;
-      const user = await models.User.findById(auth?.id).exec();
+      const user = await User.findById(auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);
@@ -302,7 +301,7 @@ articles.post(
   ): Promise<void> => {
     try {
       const { article, auth } = req;
-      const user = await models.User.findById(auth?.id).exec();
+      const user = await User.findById(auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);
@@ -329,7 +328,7 @@ articles.delete(
   ): Promise<void> => {
     try {
       const { article, auth } = req;
-      const user = await models.User.findById(auth?.id).exec();
+      const user = await User.findById(auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);
@@ -356,7 +355,7 @@ articles.get(
   ): Promise<void> => {
     try {
       const { article, auth } = req;
-      const user = await models.User.findById(auth?.id).exec();
+      const user = await User.findById(auth?.id).exec();
       const populatedArticle:
         | Omit<ArticleDocument, 'comments'> & {
             comments: CommentDocument[];
@@ -391,7 +390,7 @@ articles.post(
   ): Promise<void> => {
     try {
       const { article, auth, body } = req;
-      const user = await models.User.findById(auth?.id).exec();
+      const user = await User.findById(auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);
@@ -399,7 +398,7 @@ articles.post(
         return;
       }
 
-      const comment = await models.Comment.create({
+      const comment = await Comment.create({
         body: body?.comment?.body,
       });
       comment.article = article!._id;
@@ -426,7 +425,7 @@ articles.delete(
   ): Promise<void> => {
     try {
       const { comment, article, auth } = req;
-      const user = await models.User.findById(auth?.id).exec();
+      const user = await User.findById(auth?.id).exec();
 
       if (!user) {
         res.sendStatus(401);

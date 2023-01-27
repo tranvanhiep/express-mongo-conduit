@@ -1,4 +1,4 @@
-import models from '@models/index';
+import User from '@models/User';
 import { Strategy } from 'passport-local';
 
 export const localStrategy: Strategy = new Strategy(
@@ -8,7 +8,7 @@ export const localStrategy: Strategy = new Strategy(
   },
   async (email: string, password: string, done): Promise<void> => {
     try {
-      const user = await models.User.findOne({ email }).exec();
+      const user = await User.findOne({ email }).exec();
 
       if (!user || !user.validPassword(password)) {
         return done(
